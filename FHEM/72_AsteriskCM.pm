@@ -1,4 +1,4 @@
-# $Id: 98_AsteriskCM.pm 1040 Version 1.0 2015-10-01 18:38:10Z marvin1978 $
+# $Id: 98_AsteriskCM.pm  $
 
 package main;
 
@@ -6,6 +6,14 @@ use strict;
 use warnings;
 use DevIo;
 use MIME::Base64;
+
+#######################
+# Global variables
+my $version = "0.9.8";
+
+my %gets = (
+  "version:noArg"     => "",
+); 
 
 sub AsteriskCM_Initialize($) {
   my ($hash) = @_;
@@ -18,8 +26,7 @@ sub AsteriskCM_Initialize($) {
 	$hash->{AttrFn}    = "AsteriskCM_Attr";
 	$hash->{ReadFn}    = "AsteriskCM_Read";
 	$hash->{ReadyFn}   = "AsteriskCM_Ready";
-	$hash->{NOTIFYDEV} = "global";
-	
+
   $hash->{AttrList} = "disable:1,0 ".
 											"do_not_notify:1,0 ".
 											"contextIncoming ".
@@ -53,6 +60,10 @@ sub AsteriskCM_Define($$) {
 	$hash->{SERVER} = $a[2];
 	$hash->{USER} = $a[3] ? $a[3] : "admin";
 	$hash->{PORT} = $a[4] ? $a[4] : 5038;
+	
+	$hash->{VERSION} = $version;
+	
+	$hash->{NOTIFYDEV} = "global";
 	
 	my $index = $hash->{TYPE}."_".$hash->{NAME}."_passwd";
 	my ($err, $password) = getKeyValue($index);
@@ -136,6 +147,9 @@ sub AsteriskCM_Set($@) {
 sub AsteriskCM_Get($@) {
 	my ($hash, @arguments) = @_;
 	
+	my $name = $arguments[0];
+	my $cmd = $arguments[1];
+	
 	return "argument missing" if(int(@arguments) < 2);
 
   if($arguments[1] eq "search" and int(@arguments) >= 3) {
@@ -176,6 +190,10 @@ sub AsteriskCM_Get($@) {
     }
         
     return $head."\n".("-" x ($number_width + $name_width + 3))."\n".$table;
+  }
+  elsif ( $arguments[1] eq "version") {
+  	$hash->{VERSION} = $version;
+    return "Version: ".$version;
   }
   else {
     return "unknown argument ".$arguments[1].", choose one of search".(exists($hash->{helper}{CACHE}) ? " showCacheEntries" : "").(exists($hash->{helper}{TEXTFILE}) ? " showTextfileEntries" : ""); 
