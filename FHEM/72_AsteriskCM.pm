@@ -196,7 +196,7 @@ sub AsteriskCM_Get($@) {
     return "Version: ".$version;
   }
   else {
-    return "unknown argument ".$arguments[1].", choose one of search".(exists($hash->{helper}{CACHE}) ? " showCacheEntries" : "").(exists($hash->{helper}{TEXTFILE}) ? " showTextfileEntries" : ""); 
+    return "unknown argument ".$arguments[1].", choose one of version search".(exists($hash->{helper}{CACHE}) ? " showCacheEntries" : "").(exists($hash->{helper}{TEXTFILE}) ? " showTextfileEntries" : ""); 
   }
 }
 
