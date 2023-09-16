@@ -1,4 +1,4 @@
-# $Id: 98_AsteriskCM.pm  $
+# $Id: 98_AsteriskCM.pm 1040 Version 1.0 2015-10-01 18:38:10Z marvin1978 $
 
 package main;
 
@@ -6,14 +6,6 @@ use strict;
 use warnings;
 use DevIo;
 use MIME::Base64;
-
-#######################
-# Global variables
-my $version = "0.9.8";
-
-my %gets = (
-  "version:noArg"     => "",
-); 
 
 sub AsteriskCM_Initialize($) {
   my ($hash) = @_;
@@ -26,7 +18,8 @@ sub AsteriskCM_Initialize($) {
 	$hash->{AttrFn}    = "AsteriskCM_Attr";
 	$hash->{ReadFn}    = "AsteriskCM_Read";
 	$hash->{ReadyFn}   = "AsteriskCM_Ready";
-
+	$hash->{NOTIFYDEV} = "global";
+	
   $hash->{AttrList} = "disable:1,0 ".
 											"do_not_notify:1,0 ".
 											"contextIncoming ".
@@ -60,10 +53,6 @@ sub AsteriskCM_Define($$) {
 	$hash->{SERVER} = $a[2];
 	$hash->{USER} = $a[3] ? $a[3] : "admin";
 	$hash->{PORT} = $a[4] ? $a[4] : 5038;
-	
-	$hash->{VERSION} = $version;
-	
-	$hash->{NOTIFYDEV} = "global";
 	
 	my $index = $hash->{TYPE}."_".$hash->{NAME}."_passwd";
 	my ($err, $password) = getKeyValue($index);
@@ -147,9 +136,6 @@ sub AsteriskCM_Set($@) {
 sub AsteriskCM_Get($@) {
 	my ($hash, @arguments) = @_;
 	
-	my $name = $arguments[0];
-	my $cmd = $arguments[1];
-	
 	return "argument missing" if(int(@arguments) < 2);
 
   if($arguments[1] eq "search" and int(@arguments) >= 3) {
@@ -191,12 +177,8 @@ sub AsteriskCM_Get($@) {
         
     return $head."\n".("-" x ($number_width + $name_width + 3))."\n".$table;
   }
-  elsif ( $arguments[1] eq "version") {
-  	$hash->{VERSION} = $version;
-    return "Version: ".$version;
-  }
   else {
-    return "unknown argument ".$arguments[1].", choose one of version search".(exists($hash->{helper}{CACHE}) ? " showCacheEntries" : "").(exists($hash->{helper}{TEXTFILE}) ? " showTextfileEntries" : ""); 
+    return "unknown argument ".$arguments[1].", choose one of search".(exists($hash->{helper}{CACHE}) ? " showCacheEntries" : "").(exists($hash->{helper}{TEXTFILE}) ? " showTextfileEntries" : ""); 
   }
 }
 
@@ -461,7 +443,7 @@ sub AsteriskCM_Read($) {
 				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{internal_number}=$tHash->{Exten};
 			}
 						
-			if ($tHash->{Event} eq "Dial" && $tHash->{SubEvent} eq "Begin" && $hash->{helper}{"Call_".$tHash->{UniqueID}} && $hash->{helper}{"Call_".$tHash->{UniqueID}}{context} eq "outgoing") {
+			if ($tHash->{Event} && $tHash->{Event} eq "DialBegin" && $hash->{helper}{"Call_".$tHash->{Uniqueid}} && $hash->{helper}{"Call_".$tHash->{Uniqueid}}{context} eq "outgoing") {
 			
 				Log3 $name, 4, "AsteriskCM ($name): outgoing call.";
 
@@ -477,18 +459,18 @@ sub AsteriskCM_Read($) {
 				
 				$external_name=AsteriskCM_reverseSearch($hash,$extern_num) if(AttrVal($name, "reverse-search", "none") ne "none");
 				
-				$hash->{helper}{"Call_".$tHash->{UniqueID}}{external_connection}=$tHash->{Destination};
-				$hash->{helper}{"Call_".$tHash->{UniqueID}}{internal_number}=$tHash->{CallerIDNum};
-				$hash->{helper}{"Call_".$tHash->{UniqueID}}{external_number}=$extern_num;
-				$hash->{helper}{"Call_".$tHash->{UniqueID}}{external_name}=$external_name;
-				$hash->{helper}{"Call_".$tHash->{UniqueID}}{internal_connection}=$internal_connection;
-				$hash->{helper}{"Call_".$tHash->{UniqueID}}{state}="ringing";
+				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{external_connection}=$tHash->{Destination};
+				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{internal_number}=$tHash->{CallerIDNum};
+				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{external_number}=$extern_num;
+				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{external_name}=$external_name;
+				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{internal_connection}=$internal_connection;
+				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{state}="ringing";
 				
 				readingsBeginUpdate($hash);
 				
 				readingsBulkUpdate($hash,"event","call");
 				readingsBulkUpdate($hash,"direction","outgoing");
-				readingsBulkUpdate($hash,"call_id",$tHash->{UniqueID});
+				readingsBulkUpdate($hash,"call_id",$tHash->{Uniqueid});
 				readingsBulkUpdate($hash,"external_connection",$tHash->{Destination});
 				readingsBulkUpdate($hash,"internal_number",$tHash->{CallerIDNum});
 				readingsBulkUpdate($hash,"external_number",$extern_num);
@@ -498,7 +480,7 @@ sub AsteriskCM_Read($) {
 				readingsEndUpdate($hash, 1);
 			}
 			
-			if ($tHash->{Event} eq "Dial" && $tHash->{SubEvent} eq "Begin" && $hash->{helper}{"Call_".$tHash->{UniqueID}} && $hash->{helper}{"Call_".$tHash->{UniqueID}}{context} eq "incoming") {
+                        if ($tHash->{Event} && $tHash->{Event} eq "DialBegin" && $hash->{helper}{"Call_".$tHash->{Uniqueid}} && $hash->{helper}{"Call_".$tHash->{Uniqueid}}{context} eq "incoming") {
 				
 				Log3 $name, 4, "AsteriskCM ($name): incoming call.";
 				
@@ -508,19 +490,19 @@ sub AsteriskCM_Read($) {
 				
 				$external_name=AsteriskCM_reverseSearch($hash,$extern_num) if(AttrVal($name, "reverse-search", "none") ne "none");
 				
-				$hash->{helper}{"Call_".$tHash->{UniqueID}}{external_connection}=$tHash->{Channel};
-				$hash->{helper}{"Call_".$tHash->{UniqueID}}{external_number}=$extern_num;
-				$hash->{helper}{"Call_".$tHash->{UniqueID}}{external_name}=$external_name;
-				$hash->{helper}{"Call_".$tHash->{UniqueID}}{internal_connection}=$tHash->{Dialstring};
-				$hash->{helper}{"Call_".$tHash->{UniqueID}}{state}="ringing";
+				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{external_connection}=$tHash->{Channel};
+				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{external_number}=$extern_num;
+				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{external_name}=$external_name;
+				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{internal_connection}=$tHash->{Dialstring};
+				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{state}="ringing";
 				
 				readingsBeginUpdate($hash);
 				
 				readingsBulkUpdate($hash,"event","call");
 				readingsBulkUpdate($hash,"direction","incoming");
-				readingsBulkUpdate($hash,"call_id",$tHash->{UniqueID});
+				readingsBulkUpdate($hash,"call_id",$tHash->{Uniqueid});
 				readingsBulkUpdate($hash,"external_connection",$tHash->{Channel});
-				readingsBulkUpdate($hash,"internal_number",$hash->{helper}{"Call_".$tHash->{UniqueID}}{internal_number});
+				readingsBulkUpdate($hash,"internal_number",$hash->{helper}{"Call_".$tHash->{Uniqueid}}{internal_number});
 				readingsBulkUpdate($hash,"external_number",$extern_num);
 				readingsBulkUpdate($hash,"internal_connection",$tHash->{Dialstring});
 				readingsBulkUpdate($hash,"external_name",$external_name);
@@ -528,28 +510,28 @@ sub AsteriskCM_Read($) {
 				readingsEndUpdate($hash, 1);
 			}
 			
-			if ($tHash->{Event} eq "Bridge" && $hash->{helper}{"Call_".$tHash->{Uniqueid1}} && $tHash->{Bridgestate} eq "Link") {
+			if ($tHash->{Event} eq "BridgeEnter" && $hash->{helper}{"Call_".$tHash->{Uniqueid}}) {
 			
 				Log3 $name, 4, "AsteriskCM ($name): call connected.";
 				
-				if ($hash->{helper}{"Call_".$tHash->{Uniqueid1}}{state} && $hash->{helper}{"Call_".$tHash->{Uniqueid1}}{state} eq "ringing") {
+				if ($hash->{helper}{"Call_".$tHash->{Uniqueid}}{state} && $hash->{helper}{"Call_".$tHash->{Uniqueid}}{state} eq "ringing") {
 					my $running_calls=ReadingsVal($name,"running_calls",0);
 					$running_calls++;
 				
 				
-					$hash->{helper}{"Call_".$tHash->{Uniqueid1}}{state}="connected";
-					$hash->{helper}{"Call_".$tHash->{Uniqueid1}}{conn_time}=gettimeofday();
+					$hash->{helper}{"Call_".$tHash->{Uniqueid}}{state}="connected";
+					$hash->{helper}{"Call_".$tHash->{Uniqueid}}{conn_time}=gettimeofday();
 				
 					readingsBeginUpdate($hash);
 					
 					readingsBulkUpdate($hash,"event","connect");
-					readingsBulkUpdate($hash,"direction",$hash->{helper}{"Call_".$tHash->{Uniqueid1}}{context});
-					readingsBulkUpdate($hash,"external_connection",$hash->{helper}{"Call_".$tHash->{Uniqueid1}}{external_connection});
-					readingsBulkUpdate($hash,"internal_number",$hash->{helper}{"Call_".$tHash->{Uniqueid1}}{internal_number});
-					readingsBulkUpdate($hash,"external_number",$hash->{helper}{"Call_".$tHash->{Uniqueid1}}{external_number});
-					readingsBulkUpdate($hash,"call_id",$tHash->{Uniqueid1});
-					readingsBulkUpdate($hash,"internal_connection",$hash->{helper}{"Call_".$tHash->{Uniqueid1}}{internal_connection});
-					readingsBulkUpdate($hash,"external_name",$hash->{helper}{"Call_".$tHash->{Uniqueid1}}{external_name});
+					readingsBulkUpdate($hash,"direction",$hash->{helper}{"Call_".$tHash->{Uniqueid}}{context});
+					readingsBulkUpdate($hash,"external_connection",$hash->{helper}{"Call_".$tHash->{Uniqueid}}{external_connection});
+					readingsBulkUpdate($hash,"internal_number",$hash->{helper}{"Call_".$tHash->{Uniqueid}}{internal_number});
+					readingsBulkUpdate($hash,"external_number",$hash->{helper}{"Call_".$tHash->{Uniqueid}}{external_number});
+					readingsBulkUpdate($hash,"call_id",$tHash->{Uniqueid});
+					readingsBulkUpdate($hash,"internal_connection",$hash->{helper}{"Call_".$tHash->{Uniqueid}}{internal_connection});
+					readingsBulkUpdate($hash,"external_name",$hash->{helper}{"Call_".$tHash->{Uniqueid}}{external_name});
 					readingsBulkUpdate($hash,"running_calls",$running_calls);
 					
 					readingsEndUpdate($hash, 1);
