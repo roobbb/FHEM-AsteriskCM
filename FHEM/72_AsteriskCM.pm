@@ -1,4 +1,4 @@
-# $Id: 98_AsteriskCM.pm  $
+# $Id: 98_AsteriskCM.pm $
 
 package main;
 
@@ -9,7 +9,7 @@ use MIME::Base64;
 
 #######################
 # Global variables
-my $version = "0.9.9";
+my $version = "1.0";
 
 my %gets = (
   "version:noArg"     => "",
@@ -30,15 +30,15 @@ $hash->{NOTIFYDEV} = "global";
 $hash->{AttrList}  = "disable:1,0 ".
                      "do_not_notify:1,0 ".
                      "contextIncoming ".
-		             "contextOutgoing ".
-		             "local-area-code ".
+		     "contextOutgoing ".
+		     "local-area-code ".
                      "country-code ".
                      "remove-leading-zero:0,1 ".
                      "reverse-search-cache-file ".
                      "reverse-search:sortable-strict,textfile,klicktel.de,dasoertliche.de,search.ch,dasschnelle.at ".
                      "reverse-search-cache:0,1 ".
                      "reverse-search-text-file ".
-					 "strip-channel-string:0,1 ".
+                     "strip-channel-string:0,1 ".
 		     $readingFnAttributes;
 return undef;
 }
@@ -305,7 +305,7 @@ sub AsteriskCM_Disconnect($) {
 	$hash->{CONNECTIONSTATE} = "disconnected";
 	$hash->{LAST_DISCONNECT} = FmtDateTime( gettimeofday() );
 	
-	Log3 $name, 3, "AsteriskCM ($name): Disonnected.";
+	Log3 $name, 3, "AsteriskCM ($name): Disconnected.";
 	
 	return undef;
 }
@@ -460,8 +460,8 @@ sub AsteriskCM_Read($) {
 			
 				Log3 $name, 4, "AsteriskCM ($name): outgoing call.";
 
-                my $tmpContext=$tHash->{Context};
-                my $tmpDestContext=$tHash->{DestContext};
+                                my $tmpContext=$tHash->{Context};
+                                my $tmpDestContext=$tHash->{DestContext};
 				my @external_number = split("@",$tHash->{DialString});
 
 				my $internal_connection_temp = $tHash->{Channel};
@@ -482,7 +482,7 @@ sub AsteriskCM_Read($) {
 				  $extern_num=AsteriskCM_externalNumber ($hash,$external_number[0]);
                                   $external_name=AsteriskCM_reverseSearch($hash,$extern_num) if(AttrVal($name, "reverse-search", "none") ne "none");
 				}
-				
+
 				my $stripped_Channel="";
 				my $external_channel = $tHash->{DestChannel};
 				if (AttrVal($name, "strip-channel-string", "0") eq "1") {
@@ -490,7 +490,7 @@ sub AsteriskCM_Read($) {
 					$stripped_Channel =~ /^.*\/(.*)\-/;
 					$external_channel = $1;
 				}
-				
+
 				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{external_connection}=$external_channel;
 				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{internal_number}=$tHash->{CallerIDNum};
 				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{external_number}=$extern_num;
@@ -518,20 +518,20 @@ sub AsteriskCM_Read($) {
 				
 				my $extern_num=AsteriskCM_externalNumber ($hash,$tHash->{CallerIDNum});
 				
-                my $external_name = "-";
+                                my $external_name = "-";
 				my $CallerIDName=$tHash->{CallerIDName};
-                   #Log3 $name, 2, "test ($name): $CallerIDName";
-				   #check if CallerIDName empty or Unbekannt or filled with a number - then do the searching stuff otherwise just take CallerIDName assuming it is already filled with a valid name
-                   if (!defined($CallerIDName) or $CallerIDName eq "Unbekannt" or $CallerIDName =~ /^\d+\z/) {  
-				       $external_name=AsteriskCM_reverseSearch($hash,$extern_num) if(AttrVal($name, "reverse-search", "none") ne "none");
-					   #Log3 $name, 2, "test ($name): i do reverse search for $extern_num $CallerIDName";
-				    }
-                    else {
-                          $external_name=$CallerIDName;
-                          AsteriskCM_writeToCache($hash, $extern_num, $CallerIDName);
-						  #Log3 $name, 2, "test ($name): i took  CallerIDName $CallerIDName as name";
-                    }
-					
+                                #Log3 $name, 2, "test ($name): $CallerIDName";
+                                #check if CallerIDName empty or Unbekannt or filled with a number - then do the searching stuff otherwise just take CallerIDName assuming it is already filled with a valid name
+                                if (!defined($CallerIDName) or $CallerIDName eq "Unbekannt" or $CallerIDName eq "unknown" or $CallerIDName =~ /^\d+\z/) {  
+				    $external_name=AsteriskCM_reverseSearch($hash,$extern_num) if(AttrVal($name, "reverse-search", "none") ne "none");
+                                    #Log3 $name, 2, "test ($name): i do reverse search for num $extern_num name $CallerIDName and caught $external_name";
+				}
+                                else {
+                                    $external_name=$CallerIDName;
+                                    AsteriskCM_writeToCache($hash, $extern_num, $CallerIDName);
+                                    #Log3 $name, 2, "test ($name): i took  CallerIDName $CallerIDName as name";
+                                }
+
 				my $stripped_Channel="";
 				my $external_channel = $tHash->{Channel};
 				if (AttrVal($name, "strip-channel-string", "0") eq "1") {
@@ -539,7 +539,7 @@ sub AsteriskCM_Read($) {
 					$stripped_Channel =~ /^.*\/(.*)\-/;
 					$external_channel = $1;
 				}
-				
+
 				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{external_connection}=$external_channel;
 				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{external_number}=$extern_num;
 				$hash->{helper}{"Call_".$tHash->{Uniqueid}}{external_name}=$external_name;
@@ -715,11 +715,11 @@ sub AsteriskCM_externalNumber ($$) {
 	 
 	my $name = $hash->{NAME};
 	my $area_code = AttrVal($name, "local-area-code", "");
-  my $country_code = AttrVal($name, "country-code", "0049");
+        my $country_code = AttrVal($name, "country-code", "0049");
 	
 	$external_number =~ s/^0// if(AttrVal($name, "remove-leading-zero", "0") eq "1");
 
-	$external_number =~ s/^0049/0/;
+        $external_number =~ s/^0049/0/;
 	$external_number =~ s/^\+49/0/;
 	$external_number =~ s/^\+[1-9]{2}/00/;
 	
@@ -812,42 +812,6 @@ sub AsteriskCM_reverseSearch ($$) {
             }
 
             # Ask dasoertliche.de
-            #elsif($method eq "dasoertliche.de")
-            #{
-            #    Log3 $name, 4, "AsteriskCM ($name): using dasoertliche.de for reverse search of $number";
-            # 
-            #   # $result = GetFileFromURL("http://www1.dasoertliche.de/?form_name=search_inv&ph=".$number, 5, undef, 1);
-            #   $result = GetFileFromURL("https://www.dasoertliche.de/?form_name=search_inv&ph=".$number, 5, undef, 1);
-            #    if(not defined($result))
-            #    {
-            #        if(AttrVal($name, "reverse-search-cache", "0") eq "1")
-            #        {
-            #            $status = "timeout";
-            #            undef($result);
-            #        }
-            #    }
-            #    else
-            #    {
-            #        #Log 2, $result;
-            #        if($result =~ /<a href="http\:\/\/.+?\.dasoertliche\.de.+?".+?class="name ".+?><span class="">(.+?)<\/span>/)
-            #        {
-            #            $invert_match = $1;
-            #            $invert_match = AsteriskCM_html2txt($invert_match);
-            #            AsteriskCM_writeToCache($hash, $number, $invert_match);
-            #            undef($result);
-            #            return $invert_match;
-            #        }
-            #        elsif(not $result =~ /wir konnten keine Treffer finden/)
-            #        {
-            #            Log3 $name, 3, "AsteriskCM ($name): the reverse search result for $number could not be extracted from dasoertliche.de. Please contact the FHEM community.";
-            #        }
-            #        
-            #       $status = "unknown";
-            #    }
-            #}
-        
-############
-
             elsif($method eq "dasoertliche.de")
             {
                 unless(($number =~ /^0?[1-9]/ and $country_code eq "0049") or $number =~ /^0049/)
@@ -860,6 +824,7 @@ sub AsteriskCM_reverseSearch ($$) {
                     Log3 $name, 4, "FB_CALLMONITOR ($name) - using dasoertliche.de for reverse search of $number";
 
                     $result = GetFileFromURL("https://www.dasoertliche.de/?form_name=search_inv&ph=".$number, 5, undef, 1);
+
                     if(not defined($result))
                     {
                         if(AttrVal($name, "reverse-search-cache", "0") eq "1")
@@ -871,7 +836,9 @@ sub AsteriskCM_reverseSearch ($$) {
                     else
                     {
                         #Debug($result);
-                        if($result =~ m,<span class="st-treff-name">(.+?)</span>,)
+                        #if($result =~ m,<span class="st-treff-name">(.+?)</span>,)
+                        if($result =~ m,<div class="hit " id="entry_1">\s+.*\s+.*class="hitlnk_name" target="_self">\s+(.+?)\s+<\/a>,)
+                        
                         {
                             $invert_match = $1;
                             $invert_match = AsteriskCM_html2txt($invert_match);
@@ -891,8 +858,6 @@ sub AsteriskCM_reverseSearch ($$) {
 
             }
 
-
-############
 
             # SWITZERLAND ONLY!!! Ask search.ch
             elsif($method eq  "search.ch")
@@ -998,23 +963,6 @@ sub AsteriskCM_reverseSearch ($$) {
 #####################################
 # replaces all HTML entities to their utf-8 counter parts.
 sub AsteriskCM_html2txt($) {
-
-#    my ($string) = @_;
-
-#   $string =~ s/&nbsp;/ /g;
-#    $string =~ s/&amp;/&/g;
-#    $string =~ s/(\xe4|&auml;|\\u00e4|\\u00E4)/ä/g;
-#    $string =~ s/(\xc4|&Auml;|\\u00c4|\\u00C4)/Ä/g;
-#    $string =~ s/(\xf6|&ouml;|\\u00f6|\\u00F6)/ö/g;
-#    $string =~ s/(\xd6|&Ouml;|\\u00d6|\\u00D6)/Ö/g;
-#    $string =~ s/(\xfc|&uuml;|\\u00fc|\\u00FC)/ü/g;
-#    $string =~ s/(\xdc|&Uuml;|\\u00dc|\\u00DC)/Ü/g;
-#    $string =~ s/(\xdf|&szlig;)/ß/g;
-#    $string =~ s/<.+?>//g;
-#    $string =~ s/(^\s+|\s+$)//g;
-
-#    return trim($string);
-
 
     my ($string) = @_;
     $string =~ s/&nbsp;/ /g;
@@ -1301,19 +1249,20 @@ sub AsteriskCM_normalizePhoneNumber($$) {
     </pre>
     You can use the hash sign to comment entries in this file. If the specified file does not exists, it will be created by FHEM.
     <br /><br />
-	<li><a name="remove-leading-zero">remove-leading-zero</a></li>
+    <li><a name="remove-leading-zero">remove-leading-zero</a></li>
     If this attribute is activated, a leading zero will be removed from the external number (e.g. in telefon systems).<br /><br />
     Possible values: 0 => off , 1 => on<br />
     Default Value is 0 (off)<br /><br />
-	<li><a name="strip-channel-string">strip-channel-string</a></li>
+
+    <li><a name="strip-channel-string">strip-channel-string</a></li>
     If this attribute is activated, the reading 'external_connection' gets filled by the bare trunk name without leading 'SIP/...' and without the channel-string at the end<br />
-	You have configured your trunk-name inside sip.conf respectively pjsip.conf<br /><br />
-	Example when it is turned off: 'SIP/MyTelecomOutboundTrunk-0000011a'<br />
-	Example when it is turned on: 'MyTelecomOutboundTrunk'<br /><br />
+    You have configured your trunk-name inside sip.conf respectively pjsip.conf<br /><br />
+    Example when it is turned off (default): 'SIP/MyTelecomTrunk-0000011a'<br />
+    Example when it is turned on: 'MyTelecomTrunk'<br /><br />
     Possible values: 0 => off , 1 => on<br />
     Default Value is 0 (off)<br /><br />
-	
-	<li><a name="local-area-code">local-area-code</a></li>
+
+    <li><a name="local-area-code">local-area-code</a></li>
     Use the given local area code for reverse search in case of a local call (e.g. 0228 for Bonn, Germany)<br /><br />
     <li><a name="country-code">country-code</a></li>
     Your local country code. This is needed to identify phonenumbers in your phonebook with your local country code as a national phone number instead of an international one as well as handling Call-By-Call numbers in german speaking countries (e.g. 0049 for Germany, 0043 for Austria or 001 for USA)<br /><br />
@@ -1346,4 +1295,3 @@ sub AsteriskCM_normalizePhoneNumber($$) {
 
 =end html
 =cut
-
