@@ -1,2 +1,4 @@
+/archive
 /controls.pm
 *.bak
+generate_controls_txt.sh
