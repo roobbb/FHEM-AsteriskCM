@@ -836,9 +836,8 @@ sub AsteriskCM_reverseSearch ($$) {
                     else
                     {
                         #Debug($result);
-                        #if($result =~ m,<span class="st-treff-name">(.+?)</span>,)
-                        if($result =~ m,<div class="hit " id="entry_1">\s+.*\s+.*class="hitlnk_name" target="_self">\s+(.+?)\s+<\/a>,)
-                        
+                        #if($result =~ m,<div class="hit " id="entry_1">\s+.*\s+.*class="hitlnk_name" target="_self">\s+(.+?)\s+<\/a>,)
+                        if($result =~ m/class="hitlnk_name"\>(.*?)\<\/a\>/sg )
                         {
                             $invert_match = $1;
                             $invert_match = AsteriskCM_html2txt($invert_match);
